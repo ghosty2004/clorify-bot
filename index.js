@@ -1,6 +1,6 @@
 //++++++++++++++++++++++++++++++++++++++++++
 // -> Clorify Discord BOT by Ghost
-// -> Contact info: ghost@clorify.gg
+// -> Contact info: ghosty#0117
 //++++++++++++++++++++++++++++++++++++++++++
 
 var Discord = require("discord.js");
