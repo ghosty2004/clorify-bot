@@ -1,0 +1,12 @@
+[Unit]
+Description=Clorify Discord BOT
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/home/bot
+ExecStart=/usr/bin/node /home/bot/index.js
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
