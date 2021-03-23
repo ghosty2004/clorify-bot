@@ -2815,4 +2815,4 @@ function SendSyntax(message, text) {
     }
 }
 
-bot.login("Njk1NjU2MDI3OTExMjI1NDA2.XodWKQ.iCRwEtC4umOkwmY0Mr1IqdPdxSk");
+bot.login("your_bot_token");
