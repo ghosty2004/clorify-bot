@@ -1,7 +1,7 @@
-//++++++++++++++++++++++++++++++++++++++++++
-// -> Clorify Discord BOT by Ghost
-// -> Contact info: ghosty#0117
-//++++++++++++++++++++++++++++++++++++++++++
+/**
+ * Clorify Discord BOT by @Ghosty2004
+ * Special thanks to: @m0untain04 (from his Marky-Bot)
+ */
 
 var Discord = require("discord.js");
 var weather = require("weather-js");
@@ -9,38 +9,23 @@ var snekfetch = require("snekfetch");
 var ipinfo = require("ipinfo");
 var InstagramScrapper = require("instagram-scraping");
 var samplookup = require("samp-query");
-var hentapi = require("hentapi");
-var fs = require("fs");var colors = require('colors');
+var fs = require("fs");
+var colors = require('colors');
 var path = require("path");
 var mysql = require("mysql");
 var Canvas = require("canvas");
 var YTBScrape = require("scrape-yt");
 var YouTubeScrapper = require("yt-channel-info");
-var youtubedl = require("youtube-dl");
-var system_information = require("systeminformation");
 var ytdl = require("discord-ytdl-core");
 var yts = require("yt-search");
-var colors = require("colors");
 var ascii = require("ascii-art");
 const moment = require("moment");
 const wait = require("util").promisify(setTimeout);
 const TikTokScraper = require("tiktok-scraper");
-const SteamAPI = require("steamapi");
-const steam = new SteamAPI("steam_api_key_if_you_have");
 
-// -> SSH Configuration
-const {NodeSSH} = require("node-ssh");
-
-const ssh = new NodeSSH()
-
-ssh.connect({
-    host: "host",
-    username: "username",
-    password: "password",
-})
+const { botToken, MySQLData } = require("./botSettings");
 
 var available_ssh_logged_users = 0;
-var last_ssh_login_ip = "0";
 
 var bot = new Discord.Client({partials: ["MESSAGE"]});
 var PREFIX = "clorify,";
@@ -54,108 +39,6 @@ ownerid[1] = "334979056095199233";
 ownerid[2] = "218808258205450240";
 var current_version = "v5.2";
 var error_log_channel = "789205519108669452";
-
-// -> YouTube Video Updater
-var { google } = require('googleapis');
-const { error } = require("console");
-const { options } = require("snekfetch");
-var OAuth2 = google.auth.OAuth2;	
-var SCOPES = ['https://www.googleapis.com/auth/youtube.readonly', 'https://www.googleapis.com/auth/youtube'];
-
-var OAUTH_TOKEN;
-const CLIENT_SECRET = {"installed":{"client_id":"917394934098-50bqncudhfr61ecjlk2mp071sbtsf1de.apps.googleusercontent.com","project_id":"buster-bot-298716","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://oauth2.googleapis.com/token","auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs","client_secret":"tg9punwwPSt6vzMfUw2QD5nW","redirect_uris":["https://localhost"],"javascript_origins":["https://localhost"]}};
-const VIDEO_ID = "5s3q3gP7B_s";
-
-async function YouTubeMain() {
-    try {
-        const auth = authorize();
-        await updateVideoTitle(auth);
-    } catch (e) {
-        if(e.code == 401) {
-            var oauth2Client = new google.auth.OAuth2(
-                CLIENT_SECRET.installed.client_id,
-                CLIENT_SECRET.installed.client_secret,
-                CLIENT_SECRET.installed.redirect_uris[0]
-            )
-        
-            oauth2Client.credentials.refresh_token = OAUTH_TOKEN.refresh_token;
-        
-            oauth2Client.refreshAccessToken((error, tokens) => {
-                if(!error) {
-                    OAUTH_TOKEN = {"access_token":`${tokens.access_token}`,"refresh_token":`${tokens.refresh_token}`,"scope":`${tokens.scope}`,"token_type":`${tokens.token_type}`,"expiry_date":`${tokens.expiry_date}`};
-                    con.query(`UPDATE settings SET access_token = '${tokens.access_token}', refresh_token = '${tokens.refresh_token}', scope = '${tokens.scope}', token_type = '${tokens.token_type}', expiry_date = '${tokens.expiry_date}'`);
-                    console.log("OAuth informations has been updated.");
-                    YouTubeMain();
-                }
-                else {
-                    var authUrl = oauth2Client.generateAuthUrl({
-                        access_type: 'offline',
-                        scope: SCOPES
-                    });
-                    console.log(authUrl);
-                }
-            });
-        }
-        else {
-            console.log(e);
-        }
-    }
-}
-
-function authorize() {
-    const credentials = CLIENT_SECRET;
-    var clientSecret = credentials.installed.client_secret;
-    var clientId = credentials.installed.client_id;
-    var redirectUrl = credentials.installed.redirect_uris[0];
-    var oauth2Client = new OAuth2(clientId, clientSecret, redirectUrl);
-
-    oauth2Client.credentials = OAUTH_TOKEN;
-    return oauth2Client
-}
-
-function updateVideoTitle(auth) {
-    const service = google.youtube('v3');
-
-    // -> Date
-    var d = new Date();
-    var time = d.toLocaleTimeString('en-US', { timeZone: 'Europe/Bucharest' })
-    var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-    var monthName = months[d.getMonth()];
-    var date = `${moment.utc(d).format("DD")} ${monthName}, ${moment.utc(d).format("YYYY")} at ${time}`;
-
-    return new Promise((resolve, reject) => {
-        // -> BOT top 10 servers
-        var count = 0, string_top_servers = "";
-        con.query("SELECT * FROM guilds ORDER BY total_writes DESC LIMIT 10", function(err, result) {
-            if(result != 0) {
-                for(var i = 0; i != result.length; i++) {
-                    count++;
-                    if(count == 1) {
-                        string_top_servers = `#1. ${bot.guilds.cache.get(result[0].guild_id).name} - ${result[0].total_writes} ✍️ total writes.`;
-                    }
-                    else if(count >= 2) {
-                        string_top_servers += `\n#${count}. ${bot.guilds.cache.get(result[i].guild_id).name} - ${result[i].total_writes} ✍️ total writes.`
-                    }
-                }
-                service.videos.update({
-                    auth: auth,
-                    part: 'snippet',
-                    resource: {
-                        id: VIDEO_ID,
-                        snippet: {
-                            title: `Playing with ${bot.guilds.cache.size} servers and ${bot.users.cache.size} users. (🤖 ${bot_name_ex} Discord BOT 🤖)`,
-                            description: `⏰ Last update: ${date}\nℹ️ Every 10 minutes video update\nBOT Invite: ${WEBSITE}/?action=invite\n\nTOP 10 Servers by chat activity:\n${string_top_servers}`,
-                            categoryId: 27
-                        }
-                    }
-                }, function(err, response) {
-                    if (err) return reject(err)
-                    resolve(response.data.snippet.title)
-                });
-            }
-        });
-    })
-}
 
 // -> Mobile mode
 var Constants = Discord.Constants;
@@ -185,30 +68,17 @@ var next_song = {};
 var current_song_connection = {};
 var current_song_pause = {};
 
-var con = mysql.createConnection( 
-{ 
-    host: "host",
-    user: "root",
-    password: "pass",
-    database: "db",
-    charset: "utf8mb4"
-});
+var con = mysql.createConnection({host: MySQLData[0], user: MySQLData[1], password: MySQLData[2], database: MySQLData[3], charset: "utf8mb4"});
 
 con.connect(err => 
 {
     if(err) {
-        console.log("Database connection failed!")
+        console.log("Database connection failed!");
+        process.exit();
     }
     else {
-        console.log(`Database connection successfully!`);
+        console.log("Database connection successfully!");
         con.query("DELETE FROM chat_record")
-
-        con.query("SELECT * FROM settings", function(err, result) {
-            last_ssh_login_ip = result[0].last_ssh_login_ip;
-            if(result != 0) {
-                OAUTH_TOKEN = {"access_token":`${result[0].access_token}`,"refresh_token":`${result[0].refresh_token}`,"scope":`${result[0].scope}`,"token_type":`${result[0].token_type}`,"expiry_date":`${result[0].expiry_date}`};
-            }
-        });
     }
 });
 
@@ -247,10 +117,6 @@ bot.on("ready", async ready =>
     console.log("\x1b[37m", "");
     bot.user.setStatus("Available");
 
-    /*bot.users.cache.forEach(u => {
-        u.send("Dashboard enabled!\nCheck now https://clorify.xyz\nIf you want to invite me in your server, follow the instructions in the dashboard.")
-    });*/
-
     CheckCommands(1);
 
     CheckDeveloperInformations();
@@ -271,36 +137,7 @@ bot.on("ready", async ready =>
     setInterval(() => 
     {
         CheckDeveloperInformations();
-        /*/ -> Check ssh login
-        system_information.users().then(result => {
-            if(result.length > available_ssh_logged_users) {
-                if(result[available_ssh_logged_users].ip != last_ssh_login_ip) {
-                    ipinfo(result[available_ssh_logged_users].ip, (err, ip_info) => {
-                        for(var i = 1; i != 3; i++) {
-                            bot.users.cache.get(ownerid[i]).send("```c" + "\n" + `New SSH login:\n\nUser: "${result[available_ssh_logged_users].user}"\nDate: "${result[available_ssh_logged_users].date} at ${result[available_ssh_logged_users].time}"\nIP: "${result[available_ssh_logged_users].ip}"\nIP City: "${ip_info.city}"\nIP Country: "${ip_info.country}"` + "```");
-                        }
-                        UpdateSettings("last_ssh_login_ip", result[available_ssh_logged_users].ip);
-                        available_ssh_logged_users = result.length;
-                    });
-                }
-            }
-
-            if(result.length == 0) {
-                if(last_ssh_login_ip != "0") {
-                    last_ssh_login_ip = "0";
-                    available_ssh_logged_users = 0;
-                    UpdateSettings("last_ssh_login_ip", 0);
-                }
-            }
-        });*/
     }, 5000);
-
-    // -> YouTube API (UPDATE TITLE & DESCRIPTION)
-    //YouTubeMain();
-
-    setInterval(() => {
-        YouTubeMain();
-    }, 600000); // 10 minutes
 
     bot.users.cache.forEach(u => {
         if(!u.bot) {
@@ -398,7 +235,6 @@ bot.on("ready", async ready =>
 
     setInterval(() => {
         if(postion_text == 0) { bot.user.setActivity(`with ${bot.guilds.cache.size} servers`, { type: "PLAYING" }), postion_text = 1; }
-        else if(postion_text == 1) { bot.user.setActivity(`${WEBSITE}`, { type: "STREAMING", url: `https://www.youtube.com/watch?v=${VIDEO_ID}` }), postion_text = 2; }
         else if(postion_text == 2) { bot.user.setActivity(`${PREFIX} help`, { type: "PLAYING" }), postion_text = 3; }
         else if(postion_text == 3) { bot.user.setActivity(`${PREFIX} invite`, { type: "PLAYING" }), postion_text = 0; }
 
@@ -606,53 +442,6 @@ bot.on("message", async message => {
                     }
                     else SendSyntax(message, "preview [url png/jpg file (without http/https)]");
                 }
-                if(params[1] == "restart") {
-                    if(message.author.id == ownerid[1] || message.author.id == ownerid[2]) {
-                        message.channel.send("Please wait...").then(msg => {
-                            ssh.execCommand("service clorify restart");
-                            msg.edit("Done. The BOT successfully restarted!")
-                        });
-                    }
-                    else SendError(message, "You don't have permission to this command.");
-                }
-                if(params[1] == "ddos") {
-                    if(params[2]) {
-
-                    }
-                    else SendSyntax(message, "ddos [Ip Address]");
-                }
-                if(params[1] == "ssh") {
-                    if(message.author.id == ownerid[1] || message.author.id == ownerid[2]) {
-                        message.channel.send("Please wait...").then(msg => {
-                            system_information.getAllData().then(result => {
-                                var count = 0;
-                                var embed = new Discord.MessageEmbed();
-                                embed.setColor(embed_color);
-                                embed.setTitle("SSH INFORMATIONS:");
-                                embed.addField("Hostname:", `${result.os.hostname}`);
-                                embed.addField("Available logged users:", `${result.users.length}`);
-                                for(var i = 0; i != result.users.length; i++) {
-                                    count++;
-                                    if(count == 1) {
-                                        embed.addField("User 1:", `User: ${result.users[0].user}\nDate: ${result.users[0].date} at ${result.users[0].time}\nIP: ${result.users[0].ip}`);
-                                    }
-                                    else if(count >= 2) {
-                                        embed.addField(`User ${count}:`, `User: ${result.users[i].user}\nDate: ${result.users[i].date} at ${result.users[i].time}\nIP: ${result.users[i].ip}`);
-                                    }
-                                }
-                                embed.setFooter(embed_footer);
-                                message.author.send(embed).then(() => {
-                                    msg.edit("Check your DM !");
-                                }).catch(function() {
-                                    msg.delete();
-                                    SendError(message, "I can't send a DM to you!");
-                                })
-                                console.log(result.users[0]);
-                            });
-                        });
-                    }
-                    else SendError(message, "You don't have permission to this command.");
-                }
                 if(params[1] == "solve") {
                     if(message.author.id == ownerid[1] || message.author.id == ownerid[2]) {
                         if(message.channel.id == error_log_channel) {
@@ -709,43 +498,6 @@ bot.on("message", async message => {
                         else SendSyntax(message, "channelannounceset [youtube/soon/soon] [Mentioned Channel]");
                     }
                     else SendError(message, "You need to have ADMINISTRATOR privileges to use this command.");
-                }
-                 /*if(params[1] == "convert") { 
-                    if(params.slice(2).join(" ")) {
-                        message.channel.send("Please wait...").then(msg => {
-                            YTBScrape.search(params.slice(2).join(" "), { type: "video"}).then(result => {
-                                //var video = youtubedl(`http://www.youtube.com/watch?v=${result[0].id}`);
-                                
-                                var video = youtubedl(`http://www.youtube.com/watch?v=${result[0].id}`, ['-x', '--audio-format', 'mp3'], {});
-
-                                video.on("info", function(info) { 
-                                    msg.edit(`:information_source: **Download started.\n\n- File Title: ${result[0].title}\n- File size: ${formatSizeUnits(info.size)}**`);
-                                });
-
-                                video.on("error", function() {
-                                    msg.edit(":x: **An error has ocurred while downloading the file.**");
-                                });
-
-                                video.on("end", function (info) { 
-                                    msg.edit(":white_check_mark: **File successfully downloaded! Publishing to channel...**").then(() => {
-                                        message.channel.send("**Here is the MP3 converted file:**", { files: [`./mp3/${result[0].id}.mp3`] }).then(() => {
-                                            msg.delete(); 
-                                            fs.unlinkSync(`./mp3/${result[0].id}.mp3`);
-                                        }).catch(function() {
-                                            msg.edit(":x: **The MP3 size is too long, and discord API rejected.**");
-                                            fs.unlinkSync(`./mp3/${result[0].id}.mp3`);
-                                        })
-                                    })
-                                });
-
-                                video.pipe(fs.createWriteStream(`./mp3/${result[0].id}.mp3`));
-                            });
-                        });
-                    }
-                    else SendSyntax(message, "convert [YouTube Title/URL]")
-                }*/
-                if(params[1] == "track") {
-                    message.channel.send(`https://www.youtube.com/watch?v=${VIDEO_ID}`)
                 }
                 if(params[1] == "move") {
                     if(message.member.hasPermission("ADMINISTRATOR")) {  
@@ -1269,38 +1021,29 @@ bot.on("message", async message => {
                 }
                 if(params[1] == "info") {
                     message.channel.send("Please wait...").then(msg => {
-                        system_information.getAllData().then(data => {
-                        ssh.execCommand("uptime -p").then(function(serveruptime) {
-                            serveruptime = serveruptime.stdout.slice(2);
-                            var emoji = {};
-                            emoji[1] = "<:discord_dev:791347963074445353>";
-                            emoji[2] = "<:verified_server:791348022088171561>";
-                            emoji[3] = "<:users:791303297754464257>";
-                            emoji[4] = "<:version:791348031059525642>";
-                            emoji[5] = "<:cpu:791347953763090442>";
-                            emoji[6] = "<:servers:791347980254183446>";
-                            emoji[7] = "<:rams:791347971026452510>";
-                            var embed = new Discord.MessageEmbed();
-                            embed.setColor(embed_color);
-                            embed.setTitle(`${bot_name_ex} - INFO:`);
-                            embed.setThumbnail(bot.user.displayAvatarURL);
-                            embed.addFields
-                            (
-                                { name: `${emoji[1]} Developed by:`, value: `${developername}` },
-                                { name: `${emoji[2]} Total Servers:`, value: `${bot.guilds.cache.size}` },
-                                { name: `${emoji[3]} Total Users:`, value: `${bot.users.cache.size}` },
-                                { name: `${emoji[4]} BOT Version:`, value: `${current_version}` },
-                                { name: `${emoji[5]} Server CPU:`, value: `${data.cpu.manufacturer} ${data.cpu.brand} @ ${data.cpu.speed}GHz` },
-                                { name: `${emoji[6]} Server uptime:`, value: `${serveruptime}` },
-                                { name: `${emoji[7]} Memory usage:`, value: `${formatSizeUnits(data.mem.used)}/${formatSizeUnits(data.mem.total)}` },
-                                { name: `OS platform:`, value: `${data.os.platform}` },
-                                { name: `OS release:`, value: `${data.os.release}\n[Invite me to your server !](${WEBSITE}/?option=invite) - [Support server](${WEBSITE}/?option=support)` }
-                            );
-                            embed.setFooter(embed_footer);
-                            msg.delete();
-                            message.channel.send(embed);
-                            console.log(data);
-                        }); }); 
+                        serveruptime = serveruptime.stdout.slice(2);
+                        var emoji = {};
+                        emoji[1] = "<:discord_dev:791347963074445353>";
+                        emoji[2] = "<:verified_server:791348022088171561>";
+                        emoji[3] = "<:users:791303297754464257>";
+                        emoji[4] = "<:version:791348031059525642>";
+                        emoji[5] = "<:cpu:791347953763090442>";
+                        emoji[6] = "<:servers:791347980254183446>";
+                        emoji[7] = "<:rams:791347971026452510>";
+                        var embed = new Discord.MessageEmbed();
+                        embed.setColor(embed_color);
+                        embed.setTitle(`${bot_name_ex} - INFO:`);
+                        embed.setThumbnail(bot.user.displayAvatarURL);
+                        embed.addFields
+                        (
+                            { name: `${emoji[1]} Developed by:`, value: `${developername}` },
+                            { name: `${emoji[2]} Total Servers:`, value: `${bot.guilds.cache.size}` },
+                            { name: `${emoji[3]} Total Users:`, value: `${bot.users.cache.size}` },
+                            { name: `${emoji[4]} BOT Version:`, value: `${current_version}` }
+                        );
+                        embed.setFooter(embed_footer);
+                        msg.delete();
+                        message.channel.send(embed);
                     });
                 }
                 if(params[1] == "checkhosts") {
@@ -1574,48 +1317,9 @@ bot.on("message", async message => {
                     }
                     else SendSyntax(message, "ytblookup [Channel/Video] [Some informations]");
                 }
-                if(params[1] == "steamlookup") {
-                    if(params[2]) {
-                        message.channel.send("Please wait...").then(msg => {
-                            steam.getUserSummary(params[2]).then(result => {
-                                steam.getUserBans(params[2]).then(ban_info => {
-                                    var embed = new Discord.MessageEmbed();
-                                    embed.setColor(embed_color);
-                                    embed.setTitle(`${params[2]} - INFO:`);
-                                    embed.setThumbnail(result.avatar.large);
-                                    embed.addFields
-                                    (
-                                        { name: "Nickname:", value: `${result.nickname}` },
-                                        { name: "Steam ID:", value: `${result.steamID}` },
-                                        { name: "URL:", value: `${result.url}` },
-                                        { name: "Member since:", value: `${TimestampConvert(result.created)}` },
-                                        { name: "Last login:", value: `${TimestampConvert(result.lastLogOff)}` },
-                                        { name: "Country code:", value: `${result.countryCode}` }
-                                    );
-                                    if(ban_info.vacBanned == false) {
-                                        embed.addField("VAC Ban:", "no");
-                                    }
-                                    else {
-                                        embed.addField("VAC ban:", "yes");
-                                        embed.addField("Total VAC bans:", ban_info.vacBans);
-                                    }
-                                    msg.delete();
-                                    message.channel.send(embed);
-                                });
-                            }).catch(function() {
-                                msg.delete();
-                                SendError(message, "Invalid steam ID provided.");
-                            })
-                        });
-                    }
-                    else SendSyntax(message, "steamlookup [Steam Account ID]");
-                }
                         
                 // -> Fun commands
                 if(params[1] == "art") {
-                    //var user = message.mentions.users.first();
-                    //if(!user) user = message.author;
-
                     (async() => {
                         var image = await ascii.image("-B 8 -C rankedChannel -a blocks profile.png");
                         console.log(image);
@@ -1686,89 +1390,6 @@ bot.on("message", async message => {
                     else {
                         message.reply("nu am ce să sug de la tine...");
                     }
-                }
-                if(params[1] == "phx") { 
-                    message.channel.send({files: ["https://images-ext-1.discordapp.net/external/Bb38U2zsVriY_ussOK09mkdhFziWgKo_rXMAXRT-5ls/%3Fwidth%3D270%26height%3D481/https/media.discordapp.net/attachments/326029568056229888/738441772077678722/Screenshot_20200730-190352_Discord.jpg"]}); 
-                }
-                if(params[1] == "kala") { 
-                    message.channel.send({files: ["https://cdn.discordapp.com/attachments/738771241191735306/765254356060078100/unknown.png"]}); 
-                }
-                if(params[1] == "porn") {
-                    if(params[2]) {
-                        message.channel.send("Please wait...").then(msg => {
-                            if(msg.channel.nsfw) {
-                                var content;
-                                if(params[2] == "ass") {
-                                    content = hentapi.nsfw.ass();
-                                }
-                                else if(params[2] == "bdsm") {
-                                    content = hentapi.nsfw.bdsm();
-                                }
-                                else if(params[2] == "cum") {
-                                    content = hentapi.nsfw.cum();
-                                }
-                                else if(params[2] == "hentai") {
-                                    content = hentapi.nsfw.hentai();
-                                }
-                                else if(params[2] == "orgy") {
-                                    content = hentapi.nsfw.orgy();
-                                }
-                                else if(params[2] == "blowjob") {
-                                    content = hentapi.nsfw.blowjob();
-                                }
-                                else if(params[2] == "foot") {
-                                    content = hentapi.nsfw.foot();
-                                }
-                                else if(params[2] == "vagina") {
-                                    content = hentapi.nsfw.vagina();
-                                }
-                                else if(params[2] == "gangbang") {
-                                    content = hentapi.nsfw.gangbang();
-                                }
-                                else if(params[2] == "gif") {
-                                    content = hentapi.nsfw.gif();
-                                }
-
-                                setTimeout(() => {
-                                    if(content != undefined) {
-                                        var embed = new Discord.MessageEmbed();
-                                        embed.setColor(embed_color);
-                                        embed.setImage(content);
-                                        msg.delete();
-                                        message.channel.send(embed);
-                                    }
-                                    else {
-                                        msg.delete();
-                                        SendError(message, "Invalid category.");
-                                    }
-                                }, 1000);
-                            }
-                            else {
-                                msg.delete();
-                                SendError(message, "This channel is not NSFW.")
-                            }
-                        });
-                    }
-                    else SendSyntax(message, `porn [Category] | ${PREFIX} porncategory`)
-                }
-                if(params[1] == "porncategory") {
-                    message.channel.send("Please wait...").then(msg => {
-                        var embed = new Discord.MessageEmbed();
-                        embed.setColor(embed_color);
-                        embed.setTitle("Porn Category:");
-                        embed.setDescription("1. **ass**\n2. **bdsm**\n3. **cum**\n4. **hentai**\n5. **orgy**\n6. **blowjob**\n7. **foot**\n8. **vagina**\n9. **gangbang**\n10. **gif**");
-                        embed.setFooter(embed_footer);
-                        (message.author).send(embed).then(() => {
-                            msg.delete();
-                            message.channel.send("Check your DM !");
-                        }).catch(function() { 
-                            msg.delete();
-                            SendError(message, "I can't send a DM to you!") 
-                        });
-                    });
-                }
-                if(params[1] == "meme") {
-                    
                 }
                 if(params[1] == "gay") {
                     var user = message.mentions.users.first();
@@ -2815,4 +2436,7 @@ function SendSyntax(message, text) {
     }
 }
 
-bot.login("your_bot_token");
+bot.login(botToken).catch(() => {
+    console.log("Invalid botToken provided...");
+    process.exit();
+});
